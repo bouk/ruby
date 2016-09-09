@@ -1,3 +1,11 @@
+Thu Sep  10 00:22:18 2016  Bouke van der Bijl  <boukevanderbijl@gmail.com>
+
+	* string.c (rb_str_reverse_each_char, rb_str_reverse_chars): Add
+	str.reverse_each_char and str.reverse_chars that allow for efficiently
+	iterating over a string in reverse.
+
+	* test/ruby/test_string.rb: add tests for above
+
 Thu Sep  8 17:47:18 2016  Kazuki Tsujimoto  <kazuki@callcc.net>
 
 	* array.c (flatten): use rb_obj_class instead of rb_class_of

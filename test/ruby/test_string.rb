@@ -767,6 +767,37 @@ CODE
     end
   end
 
+  def test_reverse_each_char
+    s = S("ABC")
+
+    res = []
+    assert_equal s.object_id, s.reverse_each_char {|x| res << x }.object_id
+    assert_equal("C", res[0])
+    assert_equal("B", res[1])
+    assert_equal("A", res[2])
+
+    assert_equal "😀", S("ABC😀").reverse_each_char.next
+  end
+
+  def test_reverse_chars
+    s = S("ABC")
+    assert_equal ["C", "B", "A"], s.reverse_chars
+
+    if ENUMERATOR_WANTARRAY
+      assert_warn(/block not used/) {
+        assert_equal ["C", "B", "A"], s.reverse_chars {}
+      }
+    else
+      assert_warning(/deprecated/) {
+        res = []
+        assert_equal s.object_id, s.reverse_chars {|x| res << x }.object_id
+        assert_equal("C", res[0])
+        assert_equal("B", res[1])
+        assert_equal("A", res[2])
+      }
+    end
+  end
+
   def test_each_line
     save = $/
     $/ = "\n"

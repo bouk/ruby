@@ -7692,6 +7692,106 @@ rb_str_chars(VALUE str)
     return rb_str_enumerate_chars(str, 1);
 }
 
+static VALUE
+rb_str_reverse_enumerate_chars(VALUE str, int wantarray)
+{
+    VALUE orig = str;
+    VALUE substr;
+    long len, n;
+    const char *ptr, *end;
+    char *p;
+    rb_encoding *enc;
+    VALUE UNINITIALIZED_VAR(ary);
+
+    str = rb_str_new_frozen(str);
+    ptr = RSTRING_PTR(str);
+    len = RSTRING_LEN(str);
+    end = ptr + len;
+    enc = rb_enc_get(str);
+
+    if (rb_block_given_p()) {
+	if (wantarray) {
+#if STRING_ENUMERATORS_WANTARRAY
+	    rb_warn("given block not used");
+	    ary = rb_ary_new_capa(str_strlen(str, enc)); /* str's enc*/
+#else
+	    rb_warning("passing a block to String#chars is deprecated");
+	    wantarray = 0;
+#endif
+	}
+    }
+    else {
+	if (wantarray)
+	    ary = rb_ary_new_capa(str_strlen(str, enc)); /* str's enc*/
+	else
+	    return SIZED_ENUMERATOR(str, 0, 0, rb_str_each_char_size);
+    }
+
+    if (ENC_CODERANGE_CLEAN_P(ENC_CODERANGE(str))) {
+	for(p = rb_enc_left_char_head(ptr, end - 1, end, enc); p >= ptr; p = rb_enc_left_char_head(ptr, p - 1, end, enc)) {
+	    n = rb_enc_fast_mbclen(p, end, enc);
+	    substr = rb_str_subseq(str, p - ptr, n);
+	    if (wantarray)
+		rb_ary_push(ary, substr);
+	    else
+		rb_yield(substr);
+	}
+    }
+    else {
+	for(p = rb_enc_left_char_head(ptr, end - 1, end, enc); p >= ptr; p = rb_enc_left_char_head(ptr, p - 1, end, enc)) {
+	    n = rb_enc_mbclen(p, end, enc);
+	    substr = rb_str_subseq(str, p - ptr, n);
+	    if (wantarray)
+		rb_ary_push(ary, substr);
+	    else
+		rb_yield(substr);
+	}
+    }
+
+    RB_GC_GUARD(str);
+    if (wantarray)
+	return ary;
+    else
+	return orig;
+}
+
+/*
+ *  call-seq:
+ *     str.reverse_each_char {|cstr| block }    -> str
+ *     str.reverse_each_char                    -> an_enumerator
+ *
+ *  Passes each character in <i>str</i> in reverse to the given block, or returns
+ *  an enumerator if no block is given.
+ *
+ *     "hello".reverse_each_char {|c| print c, ' ' }
+ *
+ *  <em>produces:</em>
+ *
+ *     o l l e h
+ */
+
+static VALUE
+rb_str_reverse_each_char(VALUE str)
+{
+    return rb_str_reverse_enumerate_chars(str, 0);
+}
+
+/*
+ *  call-seq:
+ *     str.reverse_chars    -> an_array
+ *
+ *  Returns an array of characters in <i>str</i> in reverse.  This is a shorthand
+ *  for <code>str.reverse_each_char.to_a</code>.
+ *
+ *  If a block is given, which is a deprecated form, works the same as
+ *  <code>reverse_each_char</code>.
+ */
+
+static VALUE
+rb_str_reverse_chars(VALUE str)
+{
+    return rb_str_reverse_enumerate_chars(str, 1);
+}
 
 static VALUE
 rb_str_enumerate_codepoints(VALUE str, int wantarray)
@@ -9857,6 +9957,7 @@ Init_String(void)
     rb_define_method(rb_cString, "lines", rb_str_lines, -1);
     rb_define_method(rb_cString, "bytes", rb_str_bytes, 0);
     rb_define_method(rb_cString, "chars", rb_str_chars, 0);
+    rb_define_method(rb_cString, "reverse_chars", rb_str_reverse_chars, 0);
     rb_define_method(rb_cString, "codepoints", rb_str_codepoints, 0);
     rb_define_method(rb_cString, "reverse", rb_str_reverse, 0);
     rb_define_method(rb_cString, "reverse!", rb_str_reverse_bang, 0);
@@ -9908,6 +10009,7 @@ Init_String(void)
     rb_define_method(rb_cString, "each_line", rb_str_each_line, -1);
     rb_define_method(rb_cString, "each_byte", rb_str_each_byte, 0);
     rb_define_method(rb_cString, "each_char", rb_str_each_char, 0);
+    rb_define_method(rb_cString, "reverse_each_char", rb_str_reverse_each_char, 0);
     rb_define_method(rb_cString, "each_codepoint", rb_str_each_codepoint, 0);
 
     rb_define_method(rb_cString, "sum", rb_str_sum, -1);
